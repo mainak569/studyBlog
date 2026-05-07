@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     const data = await response.json();
 
-    console.log("Gemini response:", data); // 🔍 DEBUG
+    console.log("Gemini response:", data); 
 
     if (!response.ok) {
       return NextResponse.json(
@@ -39,12 +39,12 @@ export async function POST(req: Request) {
     // ---- ANSWER EXTRACTION FIX ----
     let answer: string | null = null;
 
-    // 1️⃣ New Gemini 2.5 format
+    //  New Gemini 2.5 format
     if (data.text) {
       answer = data.text;
     }
 
-    // 2️⃣ Existing "candidates" format
+    //  Existing "candidates" format
     if (!answer && data?.candidates?.[0]?.content?.parts) {
       answer = data.candidates[0].content.parts
         .map((p: any) => p.text || "")

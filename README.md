@@ -1,10 +1,10 @@
-# 📚 StudyBlog — Developer Q&A Community Platform
+# StudyBlog — Developer Q&A Community Platform
 
 > A full-stack, community-driven Q&A platform inspired by Stack Overflow, built with Next.js 14, Prisma, Clerk, and powered by **Google Gemini 2.5 Flash AI** as a built-in study assistant.
 
 ---
 
-## 🌟 What Is StudyBlog?
+## What Is StudyBlog?
 
 StudyBlog is a **developer knowledge-sharing platform** where users can:
 - Ask programming and study questions with a rich-text editor
@@ -19,29 +19,29 @@ It mirrors the experience of Stack Overflow while layering in AI assistance, a p
 
 ---
 
-## 🚀 Live Features
+## Live Features
 
 | Feature | Description |
 |---|---|
-| 🔐 Authentication | Clerk-based sign-up/sign-in with webhook user sync |
-| ❓ Ask Questions | Rich-text (TinyMCE) editor with tag support |
-| ✏️ Edit / Delete Questions | Owner-only controls with cache invalidation |
-| 💬 Answer Questions | Rich-text answers with voting |
-| 👍 Upvote / Downvote | On both questions and answers; mutually exclusive |
+| Authentication | Clerk-based sign-up/sign-in with webhook user sync |
+| Ask Questions | Rich-text (TinyMCE) editor with tag support |
+| Edit / Delete Questions | Owner-only controls with cache invalidation |
+| Answer Questions | Rich-text answers with voting |
+| Upvote / Downvote | On both questions and answers; mutually exclusive |
 | ⭐ Save to Collection | Bookmark questions for later |
-| 🤖 Ask StudyGuru | Gemini 2.5 Flash AI assistant with Markdown rendering |
-| 👤 User Profiles | Points, bio, portfolio, questions & answers tabs |
-| 🏷️ Personal Tags | Users maintain their own interest tags in the sidebar |
-| 🔍 Search | Real-time title search with URL query params |
-| 🗂️ Filters | Recommended, Newest, Most Upvoted, Unanswered |
-| 📄 Pagination | 10 items per page, custom pagination component |
-| 🌙 Dark / Light Mode | System-aware theme with `next-themes` |
-| 📱 Responsive UI | Mobile-first with collapsible sidebar and mobile filters |
-| 🔔 Toast Notifications | `sonner` toasts for all user actions |
+| Ask StudyGuru | Gemini 2.5 Flash AI assistant with Markdown rendering |
+| User Profiles | Points, bio, portfolio, questions & answers tabs |
+| Personal Tags | Users maintain their own interest tags in the sidebar |
+| Search | Real-time title search with URL query params |
+| Filters | Recommended, Newest, Most Upvoted, Unanswered |
+| Pagination | 10 items per page, custom pagination component |
+| Dark / Light Mode | System-aware theme with `next-themes` |
+| Responsive UI | Mobile-first with collapsible sidebar and mobile filters |
+| Toast Notifications | `sonner` toasts for all user actions |
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Core Framework
 | Technology | Version | Purpose |
@@ -101,7 +101,7 @@ It mirrors the experience of Stack Overflow while layering in AI assistance, a p
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 studyBlog/
@@ -201,7 +201,7 @@ studyBlog/
 
 ---
 
-## 🗄️ Database Schema (Prisma + MySQL)
+## Database Schema (Prisma + MySQL)
 
 Seven models, all relationships using cascade deletes:
 
@@ -255,7 +255,7 @@ model tag { ... }          // Dual-purpose: attached to question OR user profile
 
 ---
 
-## 🔄 How It Works — Data Flow
+## How It Works — Data Flow
 
 ### 1. Authentication Flow
 ```
@@ -338,7 +338,7 @@ POST /api/clerk (svix-verified webhook)
 
 ---
 
-## 🧩 Core Components Explained
+## Core Components Explained
 
 ### `AskEditQuestion.tsx`
 The unified form used for both **creating** and **editing** questions. Detects mode via the presence of an existing `question` prop.
@@ -382,7 +382,7 @@ sortedQuestions = enhanced.sort((a, b) => {
 
 ---
 
-## 📋 Zod Validation Schemas
+## Zod Validation Schemas
 
 ```typescript
 // lib/validation.ts
@@ -407,7 +407,7 @@ ProfileSchema = {
 
 ---
 
-## 🌐 API Routes
+## API Routes
 
 ### `POST /api/gemini`
 Proxies requests to Google Gemini 2.5 Flash API.
@@ -432,7 +432,7 @@ Clerk webhook endpoint, verified with Svix signature.
 
 ---
 
-## 🔑 Environment Variables
+## Environment Variables
 
 Create a `.env` file in the project root:
 
@@ -460,7 +460,7 @@ NEXT_PUBLIC_TINY_EDITOR_API_KEY=your_tinymce_api_key
 
 ---
 
-## ⚡ Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js 18+
@@ -501,7 +501,7 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 📜 NPM Scripts
+## NPM Scripts
 
 ```bash
 npm run dev        # Start development server (next dev)
@@ -514,7 +514,7 @@ npm run lint       # ESLint check
 
 ---
 
-## 🎯 Use Cases
+## Use Cases
 
 - **Students** asking programming questions and getting community answers
 - **Developers** sharing knowledge and building reputation
@@ -524,7 +524,7 @@ npm run lint       # ESLint check
 
 ---
 
-## 🗺️ Page Routes
+## Page Routes
 
 | Route | Access | Description |
 |---|---|---|
@@ -541,7 +541,7 @@ npm run lint       # ESLint check
 
 ---
 
-## 🏆 Gamification — Points System
+## Gamification — Points System
 
 | Action | Points Awarded |
 |---|---|
@@ -552,7 +552,7 @@ Points are stored on the `user.points` field and displayed on the public profile
 
 ---
 
-## 🎨 Design System
+## Design System
 
 - **Fonts**: Inter (body) + Space Grotesk (headings) via `next/font/google`
 - **Colors**: Custom CSS variables in `styles/theme.css` — separate light/dark palettes
@@ -562,7 +562,7 @@ Points are stored on the `user.points` field and displayed on the public profile
 
 ---
 
-## 🔒 Security
+## Security
 
 - **All routes protected** by Clerk middleware — unauthenticated users are redirected to sign-in for any page
 - **Server Actions validate ownership** — `EditQuestion`, `DeleteQuestion` check that `userId === currentUser.id`
@@ -572,7 +572,7 @@ Points are stored on the `user.points` field and displayed on the public profile
 
 ---
 
-## 📦 Key Dependencies Summary
+## Key Dependencies Summary
 
 ```json
 {
@@ -595,7 +595,7 @@ Points are stored on the `user.points` field and displayed on the public profile
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature`
@@ -605,7 +605,7 @@ Points are stored on the `user.points` field and displayed on the public profile
 
 ---
 
-## 📄 License
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
 
