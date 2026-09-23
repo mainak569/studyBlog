@@ -2,127 +2,100 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { currentUser } from "@clerk/nextjs/server";
 
 import { QuestionsSchema } from "@/lib/validation";
 import { db } from "@/lib/db";
+import { requireCurrentDbUser } from "@/lib/user";
+
+const QUESTION_POINTS = 5;
+
+const uniqueTags = (tags: z.infer<typeof QuestionsSchema>["tags"]) =>
+  Array.from(new Set(tags.map((tag) => tag.text.trim()).filter(Boolean)));
 
 // ask
 export async function AskQuestion(values: z.infer<typeof QuestionsSchema>) {
-  const user = await currentUser();
+  const user = await requireCurrentDbUser();
+  const data = QuestionsSchema.parse(values);
 
-  if (!user) return;
-
-  try {
-    // Ensure the Clerk user exists in our database (webhook may not have populated locally)
-    const existing = await db.user.findUnique({ where: { userId: user.id } });
-    if (!existing) {
-      await db.user.create({
-        data: {
-          userId: user.id,
-          name: `${user.firstName ?? ""}${user.lastName ? ` ${user.lastName}` : ""}` || (user.username ?? user.id),
-          userName: user.username ?? user.id,
-          imageUrl: user.imageUrl ?? "",
-          email: user.emailAddresses?.[0]?.emailAddress ?? "",
-          bio: "",
-          portfolioWebsite: "",
-        },
-      });
-    }
-
-    const question = await db.question.create({
+  const question = await db.$transaction(async (tx) => {
+    const question = await tx.question.create({
       data: {
-        title: values.title,
-        explanation: values.explanation,
+        title: data.title,
+        explanation: data.explanation,
         userId: user.id,
       },
     });
 
-    const tags = values.tags.map((tag) => ({
-      userId: user.id,
-      tag: tag.text,
-      questionId: question.id,
-    }));
+    await tx.tag.createMany({
+      data: uniqueTags(data.tags).map((tag) => ({
+        userId: user.id,
+        tag,
+        questionId: question.id,
+      })),
+    });
 
-    await db.tag.createMany({
-      data: tags,
-    });
     // award points for asking a question
-    await db.user.update({
+    await tx.user.update({
       where: { userId: user.id },
-      data: { points: { increment: 5 } },
+      data: { points: { increment: QUESTION_POINTS } },
     });
-    // refresh profile page cache
-    revalidatePath(`/profile/${user.id}`);
-    revalidatePath("/", "layout");
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
+
+    return question;
+  });
+
+  revalidatePath("/", "layout");
+  return question.id;
 }
 
 // edit
+export async function EditQuestion(
+  id: string,
+  values: z.infer<typeof QuestionsSchema>
+) {
+  const user = await requireCurrentDbUser();
+  const data = QuestionsSchema.parse(values);
+
+  const existing = await db.question.findUnique({ where: { id } });
+  if (!existing || existing.userId !== user.id) {
+    throw new Error("You can only edit your own questions");
+  }
+
+  await db.$transaction([
+    db.question.update({
+      where: { id },
+      data: { title: data.title, explanation: data.explanation },
+    }),
+    // replace existing tags
+    db.tag.deleteMany({ where: { questionId: id } }),
+    db.tag.createMany({
+      data: uniqueTags(data.tags).map((tag) => ({
+        userId: user.id,
+        tag,
+        questionId: id,
+      })),
+    }),
+  ]);
+
+  revalidatePath("/", "layout");
+  return id;
+}
 
 // delete
 export async function DeleteQuestion(id: string) {
-  const user = await currentUser();
+  const user = await requireCurrentDbUser();
 
-  if (!user) return;
-  if (!id) return;
-
-  try {
-    await db.question.delete({
-      where: {
-        id,
-        userId: user.id,
-      },
-    });
-    revalidatePath("/", "layout");
-  } catch (error) {
-    console.log(error);
+  const existing = await db.question.findUnique({ where: { id } });
+  if (!existing || existing.userId !== user.id) {
+    throw new Error("You can only delete your own questions");
   }
-}
 
-export async function EditQuestion(
-  id: string,
-  values: z.infer<typeof QuestionsSchema>,
-  userId: string
-) {
-  const user = await currentUser();
-  if (!id) return;
-  if (!user) return;
-  if (userId !== user.id) return;
-
-  // update question
-  await db.question.update({
-    where: {
-      id: id,
-      userId: user.id,
-    },
-    data: {
-      title: values.title,
-      explanation: values.explanation,
-    },
-  });
-
-  // update tags
-  // delete existing tags
-  await db.tag.deleteMany({
-    where: {
-      questionId: id,
-    },
-  });
-
-  // create new tags
-  const tags = values.tags.map((tag) => ({
-    userId: user.id,
-    tag: tag.text,
-    questionId: id,
-  }));
-
-  await db.tag.createMany({
-    data: tags,
-  });
+  await db.$transaction([
+    db.question.delete({ where: { id } }),
+    db.user.updateMany({
+      where: { userId: user.id, points: { gte: QUESTION_POINTS } },
+      data: { points: { decrement: QUESTION_POINTS } },
+    }),
+  ]);
 
   revalidatePath("/", "layout");
 }

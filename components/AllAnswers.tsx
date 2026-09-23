@@ -1,9 +1,9 @@
-import { answer, downvote, upvote, user } from "@prisma/client";
 import Link from "next/link";
 import Image from "next/image";
 import { currentUser } from "@clerk/nextjs/server";
 
-import { getTimestamp } from "@/lib/utils";
+import { getAvatar, getTimestamp } from "@/lib/utils";
+import { ANSWERS_PAGE_SIZE, AnswerWithRelations } from "@/lib/queries";
 import ParseHTML from "@/components/global/ParseHTML";
 import CustomPagination from "@/components/global/CustomPagination";
 import Votes from "@/components/global/Votes";
@@ -11,39 +11,38 @@ import { AnswerFilters } from "@/constants/filters";
 import MobileFilters from "@/components/global/MobileFilters";
 import Filters from "@/components/global/Filters";
 import NoResult from "@/components/global/NoResult";
-import { FetchAnswers } from "@/actions/FetchAnswers";
+import EditDeleteButtons from "@/components/EditDeleteButtons";
+
 interface Props {
   totalAnswers: number;
   page: number;
-  filter: string;
-  answers:
-    | (answer & {
-        upvotes: upvote[];
-        downvotes: downvote[];
-        user: user;
-      })[]
-    | null;
+  answers: AnswerWithRelations[];
+  // show a link to the question each answer belongs to (profile page)
+  showQuestionLink?: boolean;
 }
 
-const AllAnswers = async ({ totalAnswers, page, filter, answers }: Props) => {
+const AllAnswers = async ({
+  totalAnswers,
+  page,
+  answers,
+  showQuestionLink,
+}: Props) => {
   const ClerkUser = await currentUser();
-  const results = await FetchAnswers(filter, answers);
 
-  if (!results) return;
   return (
     <div className="mt-4">
       {totalAnswers === 0 ? (
         <NoResult
           title="There’s no answers to show"
-          description="Be the first to break the silence! Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved!"
+          description="No answers yet. Share what you know and help someone out!"
         />
       ) : (
-        <div className="flex items-center justify-between">
-          <h3 className="primary-text-gradient">{totalAnswers} Answers</h3>
-        </div>
-      )}
-      {results.length > 0 && (
         <>
+          <div className="flex items-center justify-between">
+            <h3 className="primary-text-gradient">
+              {totalAnswers} {totalAnswers === 1 ? "Answer" : "Answers"}
+            </h3>
+          </div>
           <div className="mt-11 gap-5 max-sm:flex-col sm:items-center">
             <MobileFilters
               filters={AnswerFilters}
@@ -55,7 +54,7 @@ const AllAnswers = async ({ totalAnswers, page, filter, answers }: Props) => {
         </>
       )}
       <div className="mb-10 mt-2">
-        {results.map((answer) => (
+        {answers.map((answer) => (
           <article key={answer.id} className="light-border border-b py-10">
             <div className="mb-8 flex flex-col-reverse justify-between gap-5 sm:flex-row sm:items-center sm:gap-2">
               <Link
@@ -63,7 +62,7 @@ const AllAnswers = async ({ totalAnswers, page, filter, answers }: Props) => {
                 className="flex flex-1 items-start gap-2 sm:items-center"
               >
                 <Image
-                  src={answer.user.imageUrl}
+                  src={getAvatar(answer.user?.imageUrl)}
                   width={18}
                   height={18}
                   alt="profile"
@@ -79,7 +78,7 @@ const AllAnswers = async ({ totalAnswers, page, filter, answers }: Props) => {
                   </p>
                 </div>
               </Link>
-              <div className="flex justify-end">
+              <div className="flex items-center justify-end gap-2">
                 <Votes
                   type="answer"
                   itemId={answer.id}
@@ -92,20 +91,31 @@ const AllAnswers = async ({ totalAnswers, page, filter, answers }: Props) => {
                   hasdownVoted={answer.downvotes.some(
                     (item) => item.userId === ClerkUser?.id
                   )}
-                  Downvotes={answer.downvotes}
-                  Upvotes={answer.upvotes}
                 />
+                {ClerkUser?.id === answer.userId && (
+                  <EditDeleteButtons type="Answer" itemId={answer.id} />
+                )}
               </div>
             </div>
+            {showQuestionLink && (
+              <Link
+                href={`/question/${answer.questionId}`}
+                className="body-medium text-primary-500 mb-4 block hover:underline"
+              >
+                View question →
+              </Link>
+            )}
             <ParseHTML explanation={answer.answer} />
           </article>
         ))}
       </div>
-      {totalAnswers > 10 && (
-        <div className="w-full">
-          <CustomPagination page={page} length={totalAnswers} />
-        </div>
-      )}
+      <div className="w-full">
+        <CustomPagination
+          page={page}
+          total={totalAnswers}
+          pageSize={ANSWERS_PAGE_SIZE}
+        />
+      </div>
     </div>
   );
 };

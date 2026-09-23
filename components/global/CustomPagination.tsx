@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 
 import {
   Pagination,
@@ -11,57 +10,54 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
+// `page` is 0-based and matches the "?page=" search param
 const CustomPagination = ({
   page,
-  length,
+  total,
+  pageSize = 10,
 }: {
   page: number;
-  length: number;
+  total: number;
+  pageSize?: number;
 }) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { replace } = useRouter();
-  const [Next, setNext] = useState<number>(1);
-  const [Previous, setPrevious] = useState<number | null>();
+  const router = useRouter();
 
-  const NoOfPages = Math.ceil(length / 10) - 1;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const hasPrevious = page > 0;
+  const hasNext = page + 1 < totalPages;
 
-  useEffect(() => {
-    const currentPage = Number(page) ? Number(page) : 0;
+  if (!hasPrevious && !hasNext) return null;
 
-    setNext(currentPage + 1);
-    setPrevious(currentPage > 1 ? currentPage - 1 : null);
-  }, [page, length, NoOfPages]);
-
-  const createUrl = (
-    pageNumber: number | null | undefined,
-    use: "previous" | "next"
-  ) => {
-    const params = new URLSearchParams(searchParams);
-    if (use === "previous" && Number(page) === 1) {
-      // Deletes the given search parameter, and its associated value, from the list of all search parameters
+  const goToPage = (pageNumber: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (pageNumber <= 0) {
       params.delete("page");
-      replace(`${pathname}?${params.toString()}`);
-    } else if (pageNumber) {
-      // Sets the value associated to a given search parameter to the given value. If there were several values, delete the others.
+    } else {
       params.set("page", pageNumber.toString());
-      replace(`${pathname}?${params.toString()}`);
     }
+
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
   };
 
   return (
     <Pagination>
       <PaginationContent>
-        {page && (
+        {hasPrevious && (
           <PaginationItem className="cursor-pointer">
-            <PaginationPrevious
-              onClick={() => createUrl(Previous, "previous")}
-            />
+            <PaginationPrevious onClick={() => goToPage(page - 1)} />
           </PaginationItem>
         )}
-        {page !== NoOfPages && (
+        <PaginationItem>
+          <span className="body-medium text-dark400_light800 px-4">
+            Page {page + 1} of {totalPages}
+          </span>
+        </PaginationItem>
+        {hasNext && (
           <PaginationItem className="cursor-pointer">
-            <PaginationNext onClick={() => createUrl(Next, "next")} />
+            <PaginationNext onClick={() => goToPage(page + 1)} />
           </PaginationItem>
         )}
       </PaginationContent>

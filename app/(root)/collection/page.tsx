@@ -1,4 +1,7 @@
-import { db } from "@/lib/db";
+import { Metadata } from "next";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+
 import Searchbar from "@/components/Searchbar";
 import MobileFilters from "@/components/global/MobileFilters";
 import { CollectionPageFilters } from "@/constants/filters";
@@ -6,110 +9,74 @@ import Filters from "@/components/global/Filters";
 import QuestionCard from "@/components/global/QuestionCard";
 import NoResult from "@/components/global/NoResult";
 import CustomPagination from "@/components/global/CustomPagination";
+import { getSavedQuestions } from "@/lib/queries";
 
-import { currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+export const metadata: Metadata = {
+  title: "Collection | StudyBlog",
+};
 
 const page = async ({
   searchParams,
 }: {
   searchParams: {
-    page: number;
-    filter: string;
-    q: string;
+    page?: string;
+    filter?: string;
+    q?: string;
   };
 }) => {
-  const user = await currentUser();
+  const { userId } = auth();
 
-  if (!user?.id) {
-    redirect("/");
+  if (!userId) {
+    redirect("/sign-in");
   }
 
-  const pageNo = searchParams.page ? searchParams.page : 0;
-
-  const collection = await db.collection.findMany({
-    skip: 10 * Number(pageNo),
-    take: 10,
-    include: {
-      question: {
-        include: {
-          tags: true,
-          answer: true,
-          downvotes: true,
-          saves: true,
-          upvotes: true,
-        },
-      },
-    },
-    where: {
-      question: {
-        title: {
-          contains: searchParams.q,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: searchParams.filter === "recent" ? "desc" : "asc",
-    },
+  const { questions, total, pageNo } = await getSavedQuestions({
+    userId,
+    q: searchParams.q,
+    filter: searchParams.filter,
+    page: searchParams.page,
   });
+
   return (
     <>
       <h1 className="h1-bold text-dark100_light900">Saved Questions</h1>
-      {collection.length > 0 && (
-        <>
-          <div className="mt-11 flex justify-between gap-5 max-sm:flex-col sm:items-center">
-            <Searchbar
-              route="/"
-              iconPosition="left"
-              imgSrc="/assets/icons/search.svg"
-              placeholder="Search for questions"
-              otherClasses="flex-1"
-            />
-            {/* MobileFilters */}
-            <MobileFilters
-              filters={CollectionPageFilters}
-              otherClasses="min-h-[56px] sm:min-w-[170px]"
-              containerClasses="hidden max-md:flex"
-            />
-          </div>
-          <Filters filters={CollectionPageFilters} />
-        </>
-      )}
+      <div className="mt-11 flex justify-between gap-5 max-sm:flex-col sm:items-center">
+        <Searchbar
+          iconPosition="left"
+          imgSrc="/assets/icons/search.svg"
+          placeholder="Search saved questions"
+          otherClasses="flex-1"
+        />
+        <MobileFilters
+          filters={CollectionPageFilters}
+          otherClasses="min-h-[56px] sm:min-w-[170px]"
+          containerClasses="hidden max-md:flex"
+        />
+      </div>
+      <Filters filters={CollectionPageFilters} />
       <div className="mt-10 flex w-full flex-col gap-6">
-        {collection?.length! > 0 ? (
+        {questions.length > 0 ? (
           <>
-            {collection?.map(async (coll) => {
-              const user = await db.user.findUnique({
-                where: {
-                  userId: coll.question.userId,
-                },
-              });
-              return (
-                <QuestionCard
-                  key={coll.id}
-                  question={coll.question}
-                  answers={coll.question.answer}
-                  user={user}
-                  tags={coll.question.tags}
-                  Upvotes={coll.question.upvotes}
-                />
-              );
-            })}
-            {collection?.length > 10 && (
-              <div className="mt-10">
-                <CustomPagination
-                  page={searchParams.page}
-                  length={collection.length}
-                />
-              </div>
-            )}
+            {questions.map((question) => (
+              <QuestionCard
+                key={question.id}
+                question={question}
+                answers={question.answer}
+                user={question.user}
+                tags={question.tags}
+                Upvotes={question.upvotes}
+              />
+            ))}
+            <div className="mt-10">
+              <CustomPagination page={pageNo} total={total} />
+            </div>
           </>
         ) : (
           <NoResult
-            title="There’s no Saved question to show"
-            description="Be the first to break the silence! Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved!"
-            link="/askQuestion"
-            linkTitle="Ask a Question"
+            title="There’s no saved question to show"
+            description="Save questions with the star icon on a question page to find them here later."
+            link="/"
+            linkTitle="Browse Questions"
           />
         )}
       </div>

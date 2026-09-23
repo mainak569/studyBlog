@@ -1,11 +1,9 @@
 "use client";
 
-import { Editor } from "@tinymce/tinymce-react";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useTransition } from "react";
 import { question, tag } from "@prisma/client";
 import { toast } from "sonner";
@@ -23,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { QuestionsSchema } from "@/lib/validation";
 import TagInput from "@/components/ask/TagInput";
+import RichTextEditor from "@/components/ask/RichTextEditor";
 import { AskQuestion, EditQuestion } from "@/actions/Question";
 
 const AskEditQuestion = ({
@@ -35,7 +34,6 @@ const AskEditQuestion = ({
     | null;
 }) => {
   const [isPending, startTransition] = useTransition();
-  const { resolvedTheme } = useTheme();
   const router = useRouter();
 
   const tags = question?.tags.map((tag) => ({
@@ -59,39 +57,31 @@ const AskEditQuestion = ({
   });
 
   const onSubmit = (values: z.infer<typeof QuestionsSchema>) => {
-    // console.log(values);
     startTransition(async () => {
-      if (question) {
-        // edit
-        await EditQuestion(question.id, values, question.userId)
-          .then(() => {
-            form.reset();
-            router.push("/");
-            toast.success("Question edited successfully");
-          })
-          .catch((err) => {
-            console.log(err);
-            toast.error("Something went wrong");
-          });
-      } else {
-        // create
-        await AskQuestion(values)
-          .then(() => {
-            form.reset();
-            router.push("/");
-            toast.success("Question created successfully");
-          })
-          .catch((err) => {
-            console.log(err);
-            toast.error("Something went wrong");
-          });
+      try {
+        const id = question
+          ? await EditQuestion(question.id, values)
+          : await AskQuestion(values);
+
+        form.reset();
+        router.push(`/question/${id}`);
+        toast.success(
+          question
+            ? "Question edited successfully"
+            : "Question created successfully"
+        );
+      } catch (err) {
+        console.log(err);
+        toast.error("Something went wrong");
       }
     });
   };
 
   return (
     <div>
-      <h1 className="h1-bold text-dark100_light900">Ask Question</h1>
+      <h1 className="h1-bold text-dark100_light900">
+        {question ? "Edit Question" : "Ask a Question"}
+      </h1>
       <div className="mt-9">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -112,8 +102,7 @@ const AskEditQuestion = ({
                     />
                   </FormControl>
                   <FormDescription className="body-regular mt-2.5 text-light-500">
-                    Be specific and imagine you`&apos;`re asking a question to
-                    another person.
+                    Be specific and imagine you&apos;re asking a question to another person.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -131,38 +120,16 @@ const AskEditQuestion = ({
                   <FormControl className="mt-3.5">
                     <div className="rounded-md border p-3 background-light900_dark300 light-border-2">
                       <div dir="ltr" style={{ direction: "ltr", unicodeBidi: "normal", textAlign: "left" }}>
-                          <Editor
-                            apiKey={process.env.NEXT_PUBLIC_TINY_EDITOR_API_KEY}
+                          <RichTextEditor
                             onBlur={field.onBlur}
                             value={field.value || ""}
                             onEditorChange={(content) => field.onChange(content)}
                             init={{
-                              directionality: "ltr",
+                              height: 400,
                               plugins:
-                                "anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount linkchecker",
+                                "anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount",
                               toolbar:
-                                "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat",
-                              content_style:
-                                "body { font-family:Inter; font-size:16px; direction:ltr !important; text-align:left !important; unicode-bidi: normal !important; }",
-                              forced_root_block: "p",
-                              forced_root_block_attrs: { dir: "ltr" },
-                              body_class: "mce-content-body",
-                              body_attrs: { dir: "ltr" },
-                              setup: (editor) => {
-                                editor.on("init", () => {
-                                  const body = editor.getBody();
-                                  body.setAttribute("dir", "ltr");
-                                  body.style.direction = "ltr";
-                                  body.style.textAlign = "left";
-                                  // Placeholder
-                                  if (!editor.getContent()) {
-                                    editor.setContent("");
-                                  }
-                                });
-                              },
-                              skin: resolvedTheme === "dark" ? "oxide-dark" : "oxide",
-                              content_css:
-                                resolvedTheme === "dark" ? "dark" : "light",
+                                "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | codesample link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat",
                             }}
                             disabled={isPending}
                           />
@@ -170,8 +137,7 @@ const AskEditQuestion = ({
                       </div>
                   </FormControl>
                   <FormDescription className="body-regular mt-2.5 text-light-500">
-                    Be specific and imagine you`&apos;`re asking a question to
-                    another person.
+                    Introduce the problem and expand on what you put in the title. Minimum 100 characters.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -194,8 +160,7 @@ const AskEditQuestion = ({
                     />
                   </FormControl>
                   <FormDescription className="body-regular mt-2.5 text-light-500">
-                    Be specific and imagine you`&apos;`re asking a question to
-                    another person.
+                    Add up to 8 tags to describe what your question is about. Press Enter or comma to add a tag.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

@@ -1,6 +1,6 @@
 # StudyBlog — Developer Q&A Community Platform 🚀
 
-[![Next.js](https://img.shields.io/badge/Next.js-14.2.5-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.2.35-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.18-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
@@ -81,7 +81,7 @@ StudyBlog empowers developers and students to collaborate, troubleshoot technica
 ### Frontend
 | Technology | Version | Purpose |
 | :--- | :--- | :--- |
-| **Next.js** | `14.2.5` | React framework (App Router, Server Components & Actions) |
+| **Next.js** | `14.2.35` | React framework (App Router, Server Components & Actions) |
 | **React** | `18.x` | Core UI library |
 | **TypeScript** | `5.x` | Type safety and developer experience |
 | **Tailwind CSS** | `3.4.1` | Utility-first CSS styling and custom color tokens |
@@ -116,16 +116,12 @@ StudyBlog empowers developers and students to collaborate, troubleshoot technica
 ```plaintext
 studyBlog/
 ├── actions/                  # Server Actions for DB mutations
-│   ├── FetchAnswers.ts       # Retrieve and sort question answers
-│   ├── FetchQuestion.ts      # Filter and sort questions (recommended/tags)
-│   ├── FetchUser.ts          # Query and sort community members
 │   ├── Question.ts           # Create, edit, and delete questions
-│   ├── Tag.ts                # Manage tags and user follows
+│   ├── Tag.ts                # Follow / unfollow tags
 │   ├── answer.ts             # Submit and delete answers
 │   ├── collection.ts         # Save/unsave questions to user collections
-│   ├── downvote.ts           # Downvote logic for questions and answers
-│   ├── upvote.ts             # Upvote logic for questions and answers
-│   └── user.ts               # User creation, updates, and sync actions
+│   ├── vote.ts               # Upvote/downvote questions and answers
+│   └── user.ts               # Profile updates
 ├── app/                      # Next.js 14 App Router
 │   ├── (auth)/               # Clerk authentication pages (sign-in, sign-up)
 │   ├── (root)/               # Main application layout and routes
@@ -150,11 +146,15 @@ studyBlog/
 ├── constants/                # Navigation links, filter options, default tags
 ├── lib/                      # Shared utilities, Prisma client instance, Zod schemas
 │   ├── db.ts                 # Singleton Prisma client instance
+│   ├── queries.ts            # Search, filter, sort & pagination queries
+│   ├── sanitize.ts           # HTML sanitizer for user content
+│   ├── user.ts               # Sync the signed-in Clerk user to the database
 │   ├── utils.ts              # Formatting, timestamp helpers, cn utility
 │   └── validation.ts         # Zod schemas (Questions, Answers, Profile)
-├── prisma/                   # Database schema and configuration
+├── prisma/                   # Database schema and migrations
 │   ├── schema.prisma         # Prisma data model definition
-│   └── config.ts             # Prisma configuration
+│   └── migrations/           # SQL migrations
+├── scripts/                  # copy-tinymce.mjs (self-hosts the editor on install)
 ├── public/                   # Static assets, SVG icons, and illustrations
 ├── styles/                   # Prism code highlighting and theme CSS
 ├── middleware.ts             # Clerk authentication middleware matcher
@@ -167,7 +167,7 @@ studyBlog/
 
 ## 🗄️ Database Schema
 
-The database is defined in [`prisma/schema.prisma`](file:///Users/mainak/Downloads/studyBlog-main/prisma/schema.prisma) using MySQL:
+The database is defined in [`prisma/schema.prisma`](./prisma/schema.prisma) using MySQL:
 
 ```mermaid
 erDiagram
@@ -213,7 +213,7 @@ Ensure you have the following installed on your machine:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/studyBlog.git
+   git clone https://github.com/mainak569/studyBlog.git
    cd studyBlog
    ```
 
@@ -221,13 +221,13 @@ Ensure you have the following installed on your machine:
    ```bash
    npm install
    ```
-   *(Note: The `postinstall` script will automatically run `prisma generate`)*.
+   *(Note: The `postinstall` script automatically runs `prisma generate` and copies the self-hosted TinyMCE editor into `public/tinymce`)*.
 
 ---
 
 ### Environment Variables
 
-Create a `.env` file in the root directory by copying the provided [`.env.example`](file:///Users/mainak/Downloads/studyBlog-main/.env.example):
+Create a `.env` file in the root directory by copying the provided [`.env.example`](./.env.example):
 
 ```bash
 cp .env.example .env
@@ -242,21 +242,20 @@ Fill in the environment variables:
 | `CLERK_SECRET_KEY` | Clerk Secret Key | [Clerk Dashboard](https://dashboard.clerk.com/) |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | Relative path to sign-in page (`/sign-in`) | Pre-configured in `.env.example` |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Relative path to sign-up page (`/sign-up`) | Pre-configured in `.env.example` |
-| `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL`| Redirect after sign-in (`/`) | Pre-configured in `.env.example` |
-| `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL`| Redirect after sign-up (`/`) | Pre-configured in `.env.example` |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL`| Redirect after sign-in (`/`) | Pre-configured in `.env.example` |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL`| Redirect after sign-up (`/`) | Pre-configured in `.env.example` |
 | `WEBHOOK_SECRET` | Secret to verify Clerk Svix webhooks | Clerk Dashboard -> Webhooks -> Signing Secret |
 | `GEMINI_API_KEY` | Google Gemini API key | [Google AI Studio](https://aistudio.google.com/) |
-| `NEXT_PUBLIC_TINY_EDITOR_API_KEY` | TinyMCE Editor API key | [Tiny Cloud](https://www.tiny.cloud/) |
 
 ---
 
 ### Database Migration
 
-Push the Prisma schema to your MySQL database:
+Apply the Prisma migrations to your MySQL database:
 
 ```bash
-# Push schema changes to MySQL
-npx prisma db push
+# Create the tables in MySQL
+npx prisma migrate deploy
 
 # (Optional) Open Prisma Studio to inspect your database visually
 npx prisma studio
@@ -278,7 +277,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🔔 Clerk Webhook Integration
 
-StudyBlog automatically synchronizes user profiles with your database using Clerk Webhooks:
+StudyBlog automatically synchronizes user profiles with your database using Clerk Webhooks.
+
+> The webhook is optional for local development: a signed-in user is also added to the database automatically the first time they ask, answer, vote, save, or edit their profile. Set it up in production so profile/name changes and account deletions in Clerk are mirrored.
+
 
 1. In your **Clerk Dashboard**, navigate to **Webhooks**.
 2. Click **Add Endpoint** and set the endpoint URL to:
@@ -305,12 +307,12 @@ StudyGuru provides direct in-app access to Google's **Gemini 2.5 Flash** model:
 
 | Command | Description |
 | :--- | :--- |
-| `npm run dev` | Starts the Next.js local development server with Turbopack |
+| `npm run dev` | Starts the Next.js local development server |
 | `npm run build` | Compiles the production build |
 | `npm run start` | Runs the compiled production server |
 | `npm run lint` | Runs ESLint to verify code quality and style rules |
 | `npx prisma generate` | Generates the Prisma Client types based on `schema.prisma` |
-| `npx prisma db push` | Pushes the current Prisma schema state to the connected database |
+| `npx prisma migrate deploy` | Applies the SQL migrations to the connected database |
 | `npx prisma studio` | Opens an interactive web interface for your database tables |
 
 ---

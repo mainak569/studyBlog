@@ -5,10 +5,8 @@ import React, { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Input } from "@/components/ui/input";
-import { formUrlQuery, removeKeysFromQuery } from "@/lib/utils";
 
 interface SearchbarProps {
-  route: string;
   iconPosition: string;
   imgSrc: string;
   placeholder: string;
@@ -16,7 +14,6 @@ interface SearchbarProps {
 }
 
 const Searchbar = ({
-  route,
   iconPosition,
   imgSrc,
   placeholder,
@@ -26,35 +23,32 @@ const Searchbar = ({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const query = searchParams.get("q");
+  const query = searchParams.get("q") ?? "";
 
-  const [search, setSearch] = useState(query || "");
+  const [search, setSearch] = useState(query);
 
-  // console.log(search);
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (search) {
-        // console.log(search);
-        const newUrl = formUrlQuery({
-          params: searchParams.toString(),
-          key: "q",
-          value: search,
-        });
+    // only update the URL when the input differs from it
+    if (search === query) return;
 
-        router.push(newUrl, { scroll: false });
+    const delayDebounceFn = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (search) {
+        params.set("q", search);
       } else {
-        if (pathname === route) {
-          const newUrl = removeKeysFromQuery({
-            params: searchParams.toString(),
-            keysToRemove: ["q"],
-          });
-          router.push(newUrl, { scroll: false });
-        }
+        params.delete("q");
       }
+      // new search results start from the first page
+      params.delete("page");
+
+      const newQuery = params.toString();
+      router.push(newQuery ? `${pathname}?${newQuery}` : pathname, {
+        scroll: false,
+      });
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [search, route, pathname, router, searchParams, query]);
+  }, [search, query, pathname, router, searchParams]);
 
   return (
     <div

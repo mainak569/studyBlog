@@ -38,3 +38,6 @@ next-env.d.ts
 .env
 
 /lib/generated/prisma
+
+# self-hosted TinyMCE (copied on npm install)
+/public/tinymce

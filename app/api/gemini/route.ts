@@ -27,8 +27,6 @@ export async function POST(req: Request) {
 
     const data = await response.json();
 
-    console.log("Gemini response:", data); 
-
     if (!response.ok) {
       return NextResponse.json(
         { error: data.error?.message || "Gemini error" },
@@ -36,16 +34,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // ---- ANSWER EXTRACTION FIX ----
     let answer: string | null = null;
 
-    //  New Gemini 2.5 format
-    if (data.text) {
-      answer = data.text;
-    }
-
-    //  Existing "candidates" format
-    if (!answer && data?.candidates?.[0]?.content?.parts) {
+    if (data?.candidates?.[0]?.content?.parts) {
       answer = data.candidates[0].content.parts
         .map((p: any) => p.text || "")
         .join("\n")

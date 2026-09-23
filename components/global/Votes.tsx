@@ -1,15 +1,13 @@
 "use client";
 
-import { collection, downvote, upvote } from "@prisma/client";
 import Image from "next/image";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { formatAndDivideNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { AddToCollection, DeleteCollection } from "@/actions/collection";
-import { DeleteDownvote, DownvoteQuestionAnswer } from "@/actions/downvote";
-import { DeleteUpvote, UpvoteQuestionAnswer } from "@/actions/upvote";
+import { ToggleSaveQuestion } from "@/actions/collection";
+import { Vote } from "@/actions/vote";
 
 interface Props {
   type: "answer" | "question";
@@ -19,9 +17,7 @@ interface Props {
   hasupVoted: boolean;
   downvotes: number;
   hasdownVoted: boolean;
-  saved?: collection[];
-  Downvotes: downvote[];
-  Upvotes: upvote[];
+  hasSaved?: boolean;
 }
 
 const Votes = ({
@@ -32,79 +28,39 @@ const Votes = ({
   hasupVoted,
   downvotes,
   hasdownVoted,
-  saved,
-  Downvotes,
-  Upvotes,
+  hasSaved,
 }: Props) => {
   const [isPending, startTransition] = useTransition();
 
-  const hasSaved = saved?.some(
-    (item) => item.questionId === itemId && item.userId === userId
-  );
-
   const handleSave = () => {
+    if (!userId) {
+      toast.error("You must be logged in to perform this action");
+      return;
+    }
+
     startTransition(async () => {
-      if (!userId) {
-        toast.error("You must be logged in to perform this action");
-      }
-      // TODO: save to db
-      if (hasSaved) {
-        // TODO: delete from db
-        const SavedQuestion = saved?.find(
-          (item) => item.questionId === itemId && item.userId === userId
-        );
-        await DeleteCollection(SavedQuestion?.id);
-        toast.success("Question Unsaved");
-      } else {
-        // TODO: save to db
-        await AddToCollection(itemId);
-        toast.success("Question Saved");
+      try {
+        const saved = await ToggleSaveQuestion(itemId);
+        toast.success(saved ? "Question Saved" : "Question Unsaved");
+      } catch (error) {
+        console.log(error);
+        toast.error("Something went wrong");
       }
     });
   };
 
   const handleVote = (action: "upvote" | "downvote") => {
+    if (!userId) {
+      toast.error("You must be logged in to perform this action");
+      return;
+    }
+
     startTransition(async () => {
-      if (!userId) {
-        toast.error("You must be logged in to perform this action");
-      }
-      // upvote
-      if (action === "upvote") {
-        if (hasupVoted) {
-          const UpvoteResult = Upvotes?.find((item) => item.userId === userId);
-          await DeleteUpvote(UpvoteResult?.id);
-        } else {
-          if (hasdownVoted) {
-            const DownvoteResult = Downvotes?.find(
-              (item) => item.userId === userId
-            );
-            await DeleteDownvote(DownvoteResult?.id);
-
-            await UpvoteQuestionAnswer(itemId, type);
-          } else {
-            await UpvoteQuestionAnswer(itemId, type);
-          }
-        }
-      }
-      // downvote
-      if (action === "downvote") {
-        if (hasdownVoted) {
-          const DownvoteResult = Downvotes?.find(
-            (item) => item.userId === userId
-          );
-          await DeleteUpvote(DownvoteResult?.id);
-        } else {
-          if (hasupVoted) {
-            const UpvoteResult = Upvotes?.find(
-              (item) => item.userId === userId
-            );
-            await DeleteUpvote(UpvoteResult?.id);
-
-            await DownvoteQuestionAnswer(itemId, type);
-          } else {
-            await DownvoteQuestionAnswer(itemId, type);
-          }
-        }
+      try {
+        await Vote(itemId, type, action);
+      } catch (error) {
+        console.log(error);
+        toast.error("Something went wrong");
       }
     });
   };
@@ -119,6 +75,7 @@ const Votes = ({
             onClick={() => handleVote("upvote")}
             disabled={isPending}
             variant={"ghost"}
+            aria-label="Upvote"
           >
             <Image
               src={
@@ -145,6 +102,7 @@ const Votes = ({
             onClick={() => handleVote("downvote")}
             disabled={isPending}
             variant={"ghost"}
+            aria-label="Downvote"
           >
             <Image
               src={
@@ -168,7 +126,12 @@ const Votes = ({
       </div>
       {/* collection/saved */}
       {type === "question" && (
-        <Button disabled={isPending} onClick={handleSave} variant={"ghost"}>
+        <Button
+          disabled={isPending}
+          onClick={handleSave}
+          variant={"ghost"}
+          aria-label={hasSaved ? "Unsave question" : "Save question"}
+        >
           <Image
             src={
               hasSaved

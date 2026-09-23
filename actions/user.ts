@@ -1,88 +1,27 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { currentUser } from "@clerk/nextjs/server";
 
 import { db } from "@/lib/db";
+import { ProfileSchema } from "@/lib/validation";
+import { requireCurrentDbUser } from "@/lib/user";
 
-interface user {
-  name: string;
-  userName: string;
-  imageUrl?: string;
-  email?: string;
-  bio: string | null;
-  portfolioWebsite: string | null;
-}
+// update the signed-in user's profile
+export async function updateProfile(values: z.infer<typeof ProfileSchema>) {
+  const user = await requireCurrentDbUser();
+  const data = ProfileSchema.parse(values);
 
-// create user
-export async function createUser(values: user, userId: string) {
-  try {
-    await db.user.create({
-      data: {
-        userId: userId,
-        name: values.name,
-        userName: values.userName,
-        imageUrl: values.imageUrl || "",
-        email: values.email || "",
-        bio: values.bio,
-        portfolioWebsite: values.portfolioWebsite,
-      },
-    });
-    revalidatePath("/", "layout");
-  } catch (error) {
-    console.log(error);
-  }
-}
+  await db.user.update({
+    where: { userId: user.id },
+    data: {
+      name: data.name,
+      userName: data.userName,
+      bio: data.bio,
+      portfolioWebsite: data.portfolioWebsite || null,
+    },
+  });
 
-// update user
-export async function updateUser(values: user, use: "webhook" | "userUpdate") {
-  const CurrentUser = await currentUser();
-  if (!CurrentUser) return;
-
-  try {
-    if (use === "webhook") {
-      await db.user.update({
-        where: {
-          userId: CurrentUser.id,
-        },
-        data: {
-          name: values.name,
-          userName: values.userName,
-          imageUrl: values.imageUrl || "",
-          email: values.email || "",
-        },
-      });
-    } else {
-      try {
-        await db.user.update({
-          where: {
-            userId: CurrentUser.id,
-          },
-          data: {
-            name: values.name,
-            userName: values.userName,
-            bio: values.bio,
-            portfolioWebsite: values.portfolioWebsite,
-          },
-        });
-      } catch (error) {
-        console.log(error);
-      }
-    }
-    revalidatePath("/", "layout");
-  } catch (error) {
-    console.log(error);
-  }
-}
-export async function DeleteUser(userId: string) {
-  try {
-    await db.user.delete({
-      where: {
-        userId: userId,
-      },
-    });
-    revalidatePath("/", "layout");
-  } catch (error) {
-    console.log(error);
-  }
+  revalidatePath("/", "layout");
+  return user.id;
 }

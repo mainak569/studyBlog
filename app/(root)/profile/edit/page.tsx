@@ -1,16 +1,21 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
+import { getCurrentDbUser } from "@/lib/user";
 import Profile from "@/components/Profile";
 
+export const metadata: Metadata = {
+  title: "Edit Profile | StudyBlog",
+};
+
 const Page = async () => {
-  const clerkUser = await currentUser();
+  const clerkUser = await getCurrentDbUser();
   if (!clerkUser) {
-    redirect("/");
+    redirect("/sign-in");
   }
 
-  const user = await db.user.findUnique({ where: { userId: clerkUser?.id } });
+  const user = await db.user.findUnique({ where: { userId: clerkUser.id } });
 
   return (
     <>

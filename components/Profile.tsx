@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { user } from "@prisma/client";
+import { toast } from "sonner";
 
 import {
   Form,
@@ -19,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ProfileSchema } from "@/lib/validation";
-import { updateUser } from "@/actions/user";
+import { updateProfile } from "@/actions/user";
 
 interface Props {
   user: user | null;
@@ -43,10 +44,12 @@ const Profile = ({ user }: Props) => {
     setIsSubmitting(true);
 
     try {
-      await updateUser(values, "userUpdate");
-      router.back();
+      const userId = await updateProfile(values);
+      toast.success("Profile updated");
+      router.push(`/profile/${userId}`);
     } catch (error) {
       console.log(error);
+      toast.error("Could not update profile");
     } finally {
       setIsSubmitting(false);
     }
@@ -121,7 +124,7 @@ const Profile = ({ user }: Props) => {
           render={({ field }) => (
             <FormItem className="space-y-3.5">
               <FormLabel className="paragraph-semibold text-dark400_light800">
-                Bio <span className="text-primary-500">*</span>
+                Bio
               </FormLabel>
               <FormControl>
                 <Textarea

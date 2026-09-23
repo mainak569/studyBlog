@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 import Prism from "prismjs";
 import parse from "html-react-parser";
+
+import { sanitize } from "@/lib/sanitize";
 
 import "prismjs/components/prism-python";
 import "prismjs/components/prism-java";
@@ -29,16 +31,19 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.js";
 import "prismjs/plugins/line-numbers/prism-line-numbers.css";
 
 const ParseHTML = ({ explanation }: { explanation: string }) => {
+  const safeHtml = useMemo(() => sanitize(explanation ?? ""), [explanation]);
+
   useEffect(() => {
     Prism.highlightAll();
-  }, []);
+  }, [safeHtml]);
+
   return (
     <div
       className={
-        "max-w-full prose dark:prose-p:text-light-700 dark:prose-ol:text-light-700 dark:prose-ul:text-light-500 dark:prose-strong:text-white dark:prose-headings:text-white prose-headings:text-dark-400 prose-h1:text-dark-300 prose-h2:text-dark-300 prose-p:text-dark-500 prose-ul:text-dark-500 prose-ol:text-dark-500 w-full min-w-full"
+        "max-w-full prose dark:prose-p:text-light-700 dark:prose-ol:text-light-700 dark:prose-ul:text-light-500 dark:prose-strong:text-white dark:prose-headings:text-white prose-headings:text-dark-400 prose-h1:text-dark-300 prose-h2:text-dark-300 prose-p:text-dark-500 prose-ul:text-dark-500 prose-ol:text-dark-500 dark:prose-li:text-light-700 dark:prose-a:text-primary-500 w-full min-w-full"
       }
     >
-      {parse(explanation!)}
+      {parse(safeHtml)}
     </div>
   );
 };

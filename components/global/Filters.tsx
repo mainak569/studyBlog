@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { formUrlQuery } from "@/lib/utils";
 
 const Filters = ({
   filters,
@@ -15,31 +13,24 @@ const Filters = ({
   }[];
 }) => {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
 
-  const [active, setActive] = useState("");
+  const active = searchParams.get("filter") ?? "";
 
   const handleFilter = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    // clicking the active filter again clears it
     if (active === value) {
-      setActive("");
-      const newUrl = formUrlQuery({
-        params: searchParams.toString(),
-        key: "filter",
-        value: null,
-      });
-
-      router.push(newUrl, { scroll: false });
+      params.delete("filter");
     } else {
-      setActive(value);
-
-      const newUrl = formUrlQuery({
-        params: searchParams.toString(),
-        key: "filter",
-        value: value.toLowerCase(),
-      });
-
-      router.push(newUrl, { scroll: false });
+      params.set("filter", value);
     }
+    params.delete("page");
+
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
 
   return (
@@ -52,7 +43,7 @@ const Filters = ({
               ? "dark:hover:bg-dark-400 bg-primary-100 text-myPrimary-500 hover:bg-primary-100 dark:bg-dark-400 dark:text-primary-500"
               : "bg-light-800 text-light-500 hover:bg-light-800 dark:bg-dark-300 dark:text-light-500 dark:hover:bg-dark-300"
           }`}
-          onClickCapture={() => handleFilter(filter.value)}
+          onClick={() => handleFilter(filter.value)}
         >
           {filter.name}
         </Button>

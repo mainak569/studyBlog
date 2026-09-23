@@ -4,6 +4,7 @@ import { GrHomeRounded } from "react-icons/gr";
 import { BsPatchQuestionFill, BsPatchQuestion } from "react-icons/bs";
 import { PiUsersThreeFill, PiUsersThreeLight } from "react-icons/pi";
 import { HiCollection, HiOutlineCollection } from "react-icons/hi";
+import { RiRobot2Fill, RiRobot2Line } from "react-icons/ri";
 
 export const sidebarLinks = [
   {
@@ -37,8 +38,8 @@ export const sidebarLinks = [
     label: "Ask a question",
   },
   {
-    icon: BsPatchQuestion,
-    active: BsPatchQuestionFill,
+    icon: RiRobot2Line,
+    active: RiRobot2Fill,
     route: "/ask-studyGuru",
     label: "Ask StudyGuru",
   },

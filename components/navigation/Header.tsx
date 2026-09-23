@@ -3,14 +3,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ModeToggle } from "@/components/Theme/ModeToggle";
+import MobileNav from "@/components/navigation/MobileNav";
 
 const Header = () => {
   return (
     <div className="flex-between fixed z-50 w-full gap-5 p-6 shadow-md dark:shadow-none sm:px-12 dark:dark-gradient bg-light-800">
       <div className="flex gap-2">
-        {/* mobileNav */}
+        <MobileNav />
         <Link href={"/"} className="flex items-center gap-1">
-          <Image src="/favicon.ico" width={23} height={23} alt="Icon" />
+          <Image src="/favicon.ico" width={23} height={23} alt="StudyBlog" />
           <p className="h2-bold font-spaceGrotesk text-dark-100 dark:text-light-900 max-sm:hidden">
             Study<span className="text-myPrimary-500">Blog</span>
           </p>
@@ -32,7 +33,6 @@ const Header = () => {
             }}
           />
         </SignedIn>
-        {/* RightNav */}
       </div>
     </div>
   );

@@ -3,16 +3,16 @@ import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { createUser, DeleteUser, updateUser } from "@/actions/user";
+import { db } from "@/lib/db";
+import { clerkUserToDbUser } from "@/lib/user";
 
 export async function POST(req: Request) {
   // You can find this in the Clerk Dashboard -> Webhooks -> choose the endpoint
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
-    throw new Error(
-      "Please add WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local"
-    );
+    console.error("WEBHOOK_SECRET is not set");
+    return new Response("Webhook secret not configured", { status: 500 });
   }
 
   // Get the headers
@@ -28,9 +28,8 @@ export async function POST(req: Request) {
     });
   }
 
-  // Get the body
-  const payload = await req.json();
-  const body = JSON.stringify(payload);
+  // Verify against the raw body, re-serialising JSON can break the signature
+  const body = await req.text();
 
   // Create a new Svix instance with your secret.
   const wh = new Webhook(WEBHOOK_SECRET);
@@ -51,54 +50,48 @@ export async function POST(req: Request) {
     });
   }
 
-  // Do something with the payload
-  // For this guide, you simply log the payload to the console
   const eventType = evt.type;
 
-  // Create a new user in your database
-  if (eventType === "user.created") {
-    const { id, email_addresses, image_url, username, first_name, last_name } =
-      evt.data;
+  // Create or update the user in our database
+  if (eventType === "user.created" || eventType === "user.updated") {
+    const {
+      id,
+      email_addresses,
+      primary_email_address_id,
+      image_url,
+      username,
+      first_name,
+      last_name,
+    } = evt.data;
 
-    const user = await createUser(
-      {
-        name: `${first_name}${last_name ? ` ${last_name}` : ""}`,
-        userName: username!,
-        email: email_addresses[0].email_address,
-        imageUrl: image_url,
-        bio: "",
-        portfolioWebsite: "",
-      },
-      id
-    );
-    return NextResponse.json({ message: "OK", user: user });
-  }
+    const email =
+      email_addresses.find((e) => e.id === primary_email_address_id)
+        ?.email_address ?? email_addresses[0]?.email_address;
 
-  // update user in your database
-  if (eventType === "user.updated") {
-    const { email_addresses, image_url, username, first_name, last_name } =
-      evt.data;
-
-    const values = {
-      name: `${first_name}${last_name ? ` ${last_name}` : ""}`,
-      userName: username!,
-      email: email_addresses[0].email_address,
+    const values = clerkUserToDbUser({
+      id,
+      firstName: first_name,
+      lastName: last_name,
+      username,
       imageUrl: image_url,
-      bio: "",
-      portfolioWebsite: "",
-    };
+      email,
+    });
 
-    const User = await updateUser(values, "webhook");
+    const user = await db.user.upsert({
+      where: { userId: id },
+      update: values,
+      create: { userId: id, ...values, bio: "", portfolioWebsite: "" },
+    });
 
-    return NextResponse.json({ message: "OK", user: User });
+    return NextResponse.json({ message: "OK", user });
   }
 
-  // delete user from your database
+  // delete user from our database
   if (eventType === "user.deleted") {
     const { id } = evt.data;
-    const deletedUser = await DeleteUser(id!);
+    if (id) await db.user.deleteMany({ where: { userId: id } });
 
-    return NextResponse.json({ message: "OK", user: deletedUser });
+    return NextResponse.json({ message: "OK" });
   }
 
   return new Response("", { status: 200 });

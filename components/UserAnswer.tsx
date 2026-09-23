@@ -3,9 +3,10 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Editor } from "@tinymce/tinymce-react";
 import { useRef, useState } from "react";
-import { useTheme } from "next-themes";
+import Link from "next/link";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 import {
   Form,
@@ -17,10 +18,10 @@ import {
 import { AnswerSchema } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { AddAnswer } from "@/actions/answer";
+import RichTextEditor from "@/components/ask/RichTextEditor";
 
 const UserAnswer = ({ id }: { id: string }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { resolvedTheme } = useTheme();
   const editorRef = useRef(null);
 
   const form = useForm<z.infer<typeof AnswerSchema>>({
@@ -41,15 +42,26 @@ const UserAnswer = ({ id }: { id: string }) => {
 
         editor.setContent("");
       }
-      setIsSubmitting(false);
+      toast.success("Answer posted");
     } catch (error) {
-      setIsSubmitting(false);
       console.log(error);
+      toast.error("Could not post your answer");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div>
+      <SignedOut>
+        <p className="paragraph-regular text-dark400_light800">
+          <Link href="/sign-in" className="text-primary-500 font-semibold">
+            Sign in
+          </Link>{" "}
+          to write an answer.
+        </p>
+      </SignedOut>
+      <SignedIn>
       <h4 className="paragraph-semibold text-dark400_light800">
         Write your answer here
       </h4>
@@ -65,8 +77,7 @@ const UserAnswer = ({ id }: { id: string }) => {
             render={({ field }) => (
               <FormItem className="flex w-full flex-col gap-3">
                 <FormControl className="mt-3.5">
-                  <Editor
-                    apiKey={process.env.NEXT_PUBLIC_TINY_EDITOR_API_KEY}
+                  <RichTextEditor
                     onInit={(evt, editor) => {
                       // @ts-ignore
                       editorRef.current = editor;
@@ -76,7 +87,6 @@ const UserAnswer = ({ id }: { id: string }) => {
                     init={{
                       height: 350,
                       menubar: false,
-                      directionality: "ltr",
                       plugins: [
                         "advlist",
                         "autolink",
@@ -98,22 +108,6 @@ const UserAnswer = ({ id }: { id: string }) => {
                         "undo redo | " +
                         "codesample | bold italic forecolor | alignleft aligncenter |" +
                         "alignright alignjustify | bullist numlist",
-                      content_style:
-                        "body { font-family:Inter; font-size:16px; direction:ltr !important; text-align:left !important; unicode-bidi: normal !important; }",
-                      forced_root_block: "p",
-                      forced_root_block_attrs: { dir: "ltr" },
-                      body_class: "mce-content-body",
-                      body_attrs: { dir: "ltr" },
-                      setup: (editor) => {
-                        editor.on("init", () => {
-                          const body = editor.getBody();
-                          body.setAttribute("dir", "ltr");
-                          body.style.direction = "ltr";
-                          body.style.textAlign = "left";
-                        });
-                      },
-                      skin: resolvedTheme === "dark" ? "oxide-dark" : "oxide",
-                      content_css: resolvedTheme === "dark" ? "dark" : "light",
                     }}
                   />
                 </FormControl>
@@ -133,6 +127,7 @@ const UserAnswer = ({ id }: { id: string }) => {
           </div>
         </form>
       </Form>
+      </SignedIn>
     </div>
   );
 };

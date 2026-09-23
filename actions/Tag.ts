@@ -1,39 +1,38 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { currentUser } from "@clerk/nextjs/server";
 
 import { db } from "@/lib/db";
+import { requireCurrentDbUser } from "@/lib/user";
 
-// create tag
+// follow a tag (tags without a question are the user's followed tags)
 export async function CreateTag(tag: string) {
-  const user = await currentUser();
-  try {
-    await db.tag.create({
-      data: {
-        tag: tag,
-        userId: user?.id || "",
-      },
-    });
-    revalidatePath("/", "layout");
-  } catch (error) {
-    console.log(error);
-  }
+  const user = await requireCurrentDbUser();
+
+  const name = tag.trim();
+  if (!name) throw new Error("Tag cannot be empty");
+  if (name.length > 50) throw new Error("Tag is too long");
+
+  const existing = await db.tag.findFirst({
+    where: { userId: user.id, questionId: null, tag: name },
+  });
+  if (existing) throw new Error("You already follow this tag");
+
+  await db.tag.create({
+    data: { tag: name, userId: user.id },
+  });
+
+  revalidatePath("/", "layout");
 }
 
-// delete tag
+// unfollow a tag
 export async function DeleteTag(id: string | undefined) {
-  const user = await currentUser();
+  const user = await requireCurrentDbUser();
+  if (!id) return;
 
-  if (!user) return;
-  try {
-    await db.tag.delete({
-      where: {
-        id: id,
-      },
-    });
-    revalidatePath("/", "layout");
-  } catch (error) {
-    console.log(error);
-  }
+  await db.tag.deleteMany({
+    where: { id, userId: user.id, questionId: null },
+  });
+
+  revalidatePath("/", "layout");
 }

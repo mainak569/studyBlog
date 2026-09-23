@@ -1,66 +1,53 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { currentUser } from "@clerk/nextjs/server";
 
 import { db } from "@/lib/db";
+import { AnswerSchema } from "@/lib/validation";
+import { requireCurrentDbUser } from "@/lib/user";
 
-// create tag
+const ANSWER_POINTS = 10;
+
 export async function AddAnswer(id: string, answer: string) {
-  const user = await currentUser();
-  if (!user) return;
-  if (!id) return;
-  try {
-    // Ensure the Clerk user exists in our database to satisfy FKs
-    const existing = await db.user.findUnique({ where: { userId: user.id } });
-    if (!existing) {
-      await db.user.create({
-        data: {
-          userId: user.id,
-          name: `${user.firstName ?? ""}${user.lastName ? ` ${user.lastName}` : ""}` || (user.username ?? user.id),
-          userName: user.username ?? user.id,
-          imageUrl: user.imageUrl ?? "",
-          email: user.emailAddresses?.[0]?.emailAddress ?? "",
-          bio: "",
-          portfolioWebsite: "",
-        },
-      });
-    }
+  const user = await requireCurrentDbUser();
+  const data = AnswerSchema.parse({ answer });
 
-    await db.answer.create({
+  const question = await db.question.findUnique({ where: { id } });
+  if (!question) throw new Error("Question not found");
+
+  await db.$transaction([
+    db.answer.create({
       data: {
         questionId: id,
-        answer: answer,
+        answer: data.answer,
         userId: user.id,
       },
-    });
+    }),
     // award points for answering a question
-    await db.user.update({
+    db.user.update({
       where: { userId: user.id },
-      data: { points: { increment: 10 } },
-    });
-    // refresh profile page cache
-    revalidatePath(`/profile/${user.id}`);
-    revalidatePath(`/question/${id}`);
-    revalidatePath("/", "layout");
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
+      data: { points: { increment: ANSWER_POINTS } },
+    }),
+  ]);
+
+  revalidatePath("/", "layout");
 }
 
 export async function DeleteAnswer(id: string) {
-  const user = await currentUser();
-  if (!user) return;
-  if (!id) return;
-  try {
-    await db.answer.delete({
-      where: {
-        id: id,
-      },
-    });
-    revalidatePath("/", "layout");
-  } catch (error) {
-    console.log(error);
+  const user = await requireCurrentDbUser();
+
+  const existing = await db.answer.findUnique({ where: { id } });
+  if (!existing || existing.userId !== user.id) {
+    throw new Error("You can only delete your own answers");
   }
+
+  await db.$transaction([
+    db.answer.delete({ where: { id } }),
+    db.user.updateMany({
+      where: { userId: user.id, points: { gte: ANSWER_POINTS } },
+      data: { points: { decrement: ANSWER_POINTS } },
+    }),
+  ]);
+
+  revalidatePath("/", "layout");
 }

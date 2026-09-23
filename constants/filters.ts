@@ -7,7 +7,7 @@ export const UserFilters = [
 export const HomePageFilters = [
   { name: "Recommended", value: "recommended" },
   { name: "Newest", value: "newest" },
-  { name: "Upvotes", value: "UpVotes" },
+  { name: "Upvotes", value: "upvotes" },
   { name: "Unanswered", value: "unanswered" },
 ];
 
