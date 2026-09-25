@@ -6,9 +6,9 @@
 [![Prisma](https://img.shields.io/badge/Prisma-6.18-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
 [![MySQL](https://img.shields.io/badge/MySQL-Database-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Clerk](https://img.shields.io/badge/Auth-Clerk_v5-6C47FF?style=for-the-badge&logo=clerk&logoColor=white)](https://clerk.com/)
-[![Google Gemini](https://img.shields.io/badge/AI-Gemini_2.5_Flash-8E75B2?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Google Gemini](https://img.shields.io/badge/AI-Gemini_3.8_Flash-8E75B2?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 
-> **StudyBlog** is a full-stack, community-driven Q&A platform inspired by Stack Overflow. Designed for developers and learners, it features rich-text question and answer authoring, voting, custom tag curation, reputation gamification, and **StudyGuru** — an on-demand AI study assistant powered by **Google Gemini 2.5 Flash**.
+> **StudyBlog** is a full-stack, community-driven Q&A platform inspired by Stack Overflow. Designed for developers and learners, it features rich-text question and answer authoring, voting, custom tag curation, reputation gamification, and **StudyGuru** — an on-demand AI study assistant powered by **Google Gemini 3.8 Flash**.
 
 ---
 
@@ -35,7 +35,7 @@
 
 ## 🌟 Overview
 
-StudyBlog empowers developers and students to collaborate, troubleshoot technical challenges, and build an open repository of programming solutions. Whether writing code explanations with syntax highlighting, bookmarking questions for revision, or asking Google Gemini 2.5 Flash for immediate architectural advice, StudyBlog delivers a modern developer experience.
+StudyBlog empowers developers and students to collaborate, troubleshoot technical challenges, and build an open repository of programming solutions. Whether writing code explanations with syntax highlighting, bookmarking questions for revision, or asking Google Gemini 3.8 Flash for immediate architectural advice, StudyBlog delivers a modern developer experience.
 
 <div align="center">
   <img src="./askQuestion.png" alt="StudyBlog Question Creation Interface" width="90%" />
@@ -52,7 +52,7 @@ StudyBlog empowers developers and students to collaborate, troubleshoot technica
 - **Question Editing & Management**: Authors can update question details, edit tags, or delete their posts.
 
 ### 🤖 Built-In AI Assistant: "StudyGuru"
-- **Google Gemini 2.5 Flash Integration**: Built directly into the platform (`/ask-studyGuru`), users can prompt Gemini for explanations, debugging assistance, or concept summaries.
+- **Google Gemini 3.8 Flash Integration**: Built directly into the platform (`/ask-studyGuru`), users can prompt Gemini for explanations, debugging assistance, or concept summaries.
 - **Markdown & Code Rendering**: Parses AI markdown responses into rich HTML and highlighted code blocks using `marked` and custom rendering components.
 
 ### 🗳️ Voting & Bookmark System
@@ -107,7 +107,7 @@ StudyBlog empowers developers and students to collaborate, troubleshoot technica
 | :--- | :--- | :--- |
 | **Clerk** | `@clerk/nextjs ^5.7.5` | User authentication, session management, and profile accounts |
 | **Svix** | `1.81.0` | Cryptographic signature verification for Clerk webhooks |
-| **Google Gemini API** | `gemini-2.5-flash` | Generative AI engine powering StudyGuru |
+| **Google Gemini API** | `gemini-3.8-flash` | Generative AI engine powering StudyGuru |
 
 ---
 
@@ -126,7 +126,7 @@ studyBlog/
 │   ├── (auth)/               # Clerk authentication pages (sign-in, sign-up)
 │   ├── (root)/               # Main application layout and routes
 │   │   ├── (home)/           # Question feed with search & filters
-│   │   ├── ask-studyGuru/    # Gemini 2.5 Flash AI Assistant page
+│   │   ├── ask-studyGuru/    # Gemini 3.8 Flash AI Assistant page
 │   │   ├── askQuestion/      # Create question page (TinyMCE)
 │   │   ├── collection/       # Saved / Bookmarked questions
 │   │   ├── community/        # Community members & contributor leaderboard
@@ -134,7 +134,7 @@ studyBlog/
 │   │   └── question/         # Dynamic question details and edit pages
 │   ├── api/                  # API Route Handlers
 │   │   ├── clerk/            # Svix webhook endpoint for Clerk user synchronization
-│   │   └── gemini/           # Server endpoint for Gemini 2.5 Flash queries
+│   │   └── gemini/           # Server endpoint for Gemini 3.8 Flash queries
 │   ├── globals.css           # Global Tailwind CSS and utility variables
 │   └── layout.tsx            # Root layout with ClerkProvider & ThemeProvider
 ├── components/               # Reusable React components
@@ -246,6 +246,7 @@ Fill in the environment variables:
 | `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL`| Redirect after sign-up (`/`) | Pre-configured in `.env.example` |
 | `WEBHOOK_SECRET` | Secret to verify Clerk Svix webhooks | Clerk Dashboard -> Webhooks -> Signing Secret |
 | `GEMINI_API_KEY` | Google Gemini API key | [Google AI Studio](https://aistudio.google.com/) |
+| `GEMINI_MODEL` | Optional Gemini model override (default `gemini-3.8-flash`) | [Gemini models](https://ai.google.dev/gemini-api/docs/models) |
 
 ---
 
@@ -296,7 +297,7 @@ StudyBlog automatically synchronizes user profiles with your database using Cler
 
 ## 🤖 AI Assistant: StudyGuru
 
-StudyGuru provides direct in-app access to Google's **Gemini 2.5 Flash** model:
+StudyGuru provides direct in-app access to Google's **Gemini 3.8 Flash** model:
 - **Route**: Accessible via the left navigation bar at `/ask-studyGuru`.
 - **API Handler**: Handled securely on the server via `app/api/gemini/route.ts` using direct REST calls with parameter tuning (`temperature: 0.3`, `maxOutputTokens: 8000`).
 - **Markdown & Code Formatting**: Responses are converted to styled HTML with Prism syntax highlighting and line breaks for code blocks.
