@@ -10,10 +10,17 @@
 
 > **StudyBlog** is a full-stack, community-driven Q&A platform inspired by Stack Overflow. Designed for developers and learners, it features rich-text question and answer authoring, voting, custom tag curation, reputation gamification, and **StudyGuru** — an on-demand AI study assistant powered by **Google Gemini 3.8 Flash**.
 
+## 🎬 Demo
+
+https://github.com/user-attachments/assets/2b7bb11b-8a0f-4c0c-8aab-3bae5e53eedf
+
+<p align="center"><sub>2-minute tour: questions &amp; search, voting &amp; reputation, architecture, the Prisma schema, the StudyGuru AI assistant, auth &amp; security, and UX.</sub></p>
+
 ---
 
 ## 📌 Table of Contents
 
+- [Demo](#-demo)
 - [Overview](#-overview)
 - [Key Features](#-key-features)
 - [Tech Stack](#-tech-stack)
@@ -29,7 +36,6 @@
 - [AI Assistant: StudyGuru](#-ai-assistant-studyguru)
 - [Available Scripts](#-available-scripts)
 - [Contributing](#-contributing)
-- [License](#-license)
 
 ---
 

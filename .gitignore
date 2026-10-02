@@ -41,3 +41,6 @@ next-env.d.ts
 
 # self-hosted TinyMCE (copied on npm install)
 /public/tinymce
+
+# Remotion demo video project + renders (the video is linked in the README, not committed)
+/video
